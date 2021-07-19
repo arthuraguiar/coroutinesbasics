@@ -1,6 +1,5 @@
 package com.example.couroutinesbasics.ui
 
-
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
@@ -20,7 +19,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
         initObserver()
         initButtons()
     }
@@ -34,10 +32,11 @@ class MainActivity : AppCompatActivity() {
                 MainViewModel.ViewModelResponse.OnGetQuoteError -> {
                     showErrorDialog()
                 }
-                is MainViewModel.ViewModelResponse.OnGetQuoteSucess -> {
-                    binding.quoteText.text = response.quote.message
-                }
             }
+        })
+
+        viewModel.data.observe(this ,{ quote ->
+            binding.quoteText.text = quote?.message?:"veio nulo"
         })
     }
 

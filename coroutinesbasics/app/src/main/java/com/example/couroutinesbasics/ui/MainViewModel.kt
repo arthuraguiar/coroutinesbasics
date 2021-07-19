@@ -1,23 +1,23 @@
 package com.example.couroutinesbasics.ui
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.couroutinesbasics.data.TrumpQuote
+import androidx.lifecycle.*
+import com.example.couroutinesbasics.data.TrumpQuotesDao
 import com.example.couroutinesbasics.repository.TrumpRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.lang.Exception
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-        private val repository: TrumpRepository
+     private val repository: TrumpRepository,
+     private val dao: TrumpQuotesDao
 ) : ViewModel() {
 
     private val responses: MutableLiveData<ViewModelResponse> = MutableLiveData()
     val viewModelResponses: LiveData<ViewModelResponse> get() = responses
+    val data = dao.getFirstQuote().asLiveData()
 
     init {
         getQuotes()
@@ -26,17 +26,16 @@ class MainViewModel @Inject constructor(
     fun getQuotes() = viewModelScope.launch(Dispatchers.Main) {
         try {
             responses.value = ViewModelResponse.Loading(true)
-            responses.value = ViewModelResponse.OnGetQuoteSucess(repository.getRandomQuote())
-        }catch (e: Exception){
+            repository.getRandomQuote()
+        }catch (e: Exception) {
             responses.value = ViewModelResponse.OnGetQuoteError
-        }finally {
+        }
+        finally {
             responses.value = ViewModelResponse.Loading(false)
         }
-
     }
 
     sealed class ViewModelResponse{
-        data class OnGetQuoteSucess(val quote: TrumpQuote): ViewModelResponse()
         data class Loading(val isLoading: Boolean): ViewModelResponse()
         object OnGetQuoteError: ViewModelResponse()
     }

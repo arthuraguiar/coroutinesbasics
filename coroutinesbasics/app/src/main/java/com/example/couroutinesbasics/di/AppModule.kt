@@ -1,5 +1,8 @@
 package com.example.couroutinesbasics.di
 
+import android.app.Application
+import androidx.room.Room
+import com.example.couroutinesbasics.data.TrumpQuotesDataBase
 import com.example.couroutinesbasics.repository.TrumpQuoteService
 import dagger.Module
 import dagger.Provides
@@ -25,6 +28,21 @@ object AppModule {
     @Singleton
     fun providesRestaurantApi(retrofit: Retrofit): TrumpQuoteService =
         retrofit.create(TrumpQuoteService::class.java)
+
+
+
+    @Provides
+    @Singleton
+    fun provideDatabase(
+        app: Application
+    ) = Room
+        .databaseBuilder(app, TrumpQuotesDataBase::class.java, "trump_database")
+        .build()
+
+    @Provides
+    fun provideDao(
+        dataBase: TrumpQuotesDataBase
+    ) = dataBase.trumpDao()
 
 
 
