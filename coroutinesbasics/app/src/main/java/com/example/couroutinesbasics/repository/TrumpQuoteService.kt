@@ -6,7 +6,7 @@ import retrofit2.http.GET
 interface TrumpQuoteService {
 
     @GET("random")
-    suspend fun getRandomQuote():TrumpQuote
+    suspend fun getRandomQuote(): TrumpQuote
 
 
     companion object{

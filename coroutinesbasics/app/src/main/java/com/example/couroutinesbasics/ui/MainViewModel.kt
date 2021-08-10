@@ -8,36 +8,43 @@ import com.example.couroutinesbasics.data.TrumpQuote
 import com.example.couroutinesbasics.repository.TrumpRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-        private val repository: TrumpRepository
+    private val repository: TrumpRepository
 ) : ViewModel() {
 
-    private val responses: MutableLiveData<ViewModelResponse> = MutableLiveData()
-    val viewModelResponses: LiveData<ViewModelResponse> get() = responses
+    private val responses =  Channel<ViewModelResponse>()
+    val viewModelResponses get() = responses
 
     init {
         getQuotes()
     }
 
-    fun getQuotes() = viewModelScope.launch(Dispatchers.Main) {
-        try {
-            responses.value = ViewModelResponse.Loading(true)
-            responses.value = ViewModelResponse.OnGetQuoteSucess(repository.getRandomQuote())
-        }catch (e: Exception){
-            responses.value = ViewModelResponse.OnGetQuoteError
-        }finally {
-            responses.value = ViewModelResponse.Loading(false)
-        }
-
+    fun getQuotes() = viewModelScope.launch {
+        repository.getRandomQuoteFlow()
+            .flowOn(Dispatchers.IO)
+            .onStart {
+                responses.send(ViewModelResponse.Loading(true))
+            }
+            .catch { t ->
+                responses.send(ViewModelResponse.OnGetQuoteError(t.message.toString()))
+            }
+            .onCompletion {
+                responses.send(ViewModelResponse.Loading(false))
+            }
+            .collect { quote ->
+                responses.send(ViewModelResponse.OnGetQuoteSucess(quote))
+            }
     }
 
-    sealed class ViewModelResponse{
-        data class OnGetQuoteSucess(val quote: TrumpQuote): ViewModelResponse()
-        data class Loading(val isLoading: Boolean): ViewModelResponse()
-        object OnGetQuoteError: ViewModelResponse()
+    sealed class ViewModelResponse {
+        data class OnGetQuoteSucess(val quote: TrumpQuote) : ViewModelResponse()
+        data class Loading(val isLoading: Boolean) : ViewModelResponse()
+        data class OnGetQuoteError(val msg: String) : ViewModelResponse()
     }
 }

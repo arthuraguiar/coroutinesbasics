@@ -6,8 +6,11 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import com.example.couroutinesbasics.databinding.ActivityMainBinding
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.receiveAsFlow
 
 
 @AndroidEntryPoint
@@ -26,19 +29,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initObserver(){
-        viewModel.viewModelResponses.observe(this, { response ->
-            when(response){
-                is MainViewModel.ViewModelResponse.Loading ->{
-                    binding.progressBar.isVisible = response.isLoading
-                }
-                MainViewModel.ViewModelResponse.OnGetQuoteError -> {
-                    showErrorDialog()
-                }
-                is MainViewModel.ViewModelResponse.OnGetQuoteSucess -> {
-                    binding.quoteText.text = response.quote.message
+        lifecycleScope.launchWhenStarted {
+            viewModel.viewModelResponses.receiveAsFlow().collect { response ->
+                when(response){
+                    is MainViewModel.ViewModelResponse.Loading ->{
+                        binding.progressBar.isVisible = response.isLoading
+                    }
+                    is MainViewModel.ViewModelResponse.OnGetQuoteError -> {
+                        showErrorDialog(response.msg)
+                    }
+                    is MainViewModel.ViewModelResponse.OnGetQuoteSucess -> {
+                        binding.quoteText.text = response.quote.message
+                    }
                 }
             }
-        })
+        }
     }
 
     private fun initButtons(){
@@ -47,10 +52,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showErrorDialog() {
+    private fun showErrorDialog(msg: String) {
         AlertDialog.Builder(this)
-            .setTitle("Error")
-            .setMessage("Error While Getting Quote")
+            .setTitle("Error While Getting Quote")
+            .setMessage(msg)
             .setNegativeButton("Ok", null)
             .show()
     }
